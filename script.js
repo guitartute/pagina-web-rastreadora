@@ -29,67 +29,80 @@ const zonasPorPais = {
     "ARGENTINA": "America/Argentina/Buenos_Aires"
 };
 
-/**
- * Función: generarTextoFecha
- * @param {number} offset - Desplazamiento en días (-1 para ayer, 0 hoy, 1 mañana)
- */
-function generarTextoFecha(offset = 0) {
-    const fecha = new Date();
-    fecha.setDate(fecha.getDate() + offset); // Ajustamos el día
-    
-    const dia = String(fecha.getDate()).padStart(2, '0');
-    const mes = String(fecha.getMonth() + 1).padStart(2, '0');
-    const nombresDias = ["Dom", "Lun", "Mar", "Mie", "Jue", "Vie", "Sab"];
-    const diaSemana = nombresDias[fecha.getDay()];
-    
-    return `${dia}/${mes} (${diaSemana})`;
+function generarFechaOffset(dias = 0) {
+    const f = new Date();
+    f.setDate(f.getDate() + dias);
+    const d = String(f.getDate()).padStart(2, '0');
+    const m = String(f.getMonth() + 1).padStart(2, '0');
+    const nombres = ["Dom", "Lun", "Mar", "Mie", "Jue", "Vie", "Sab"];
+    return `${d}/${m} (${nombres[f.getDay()]})`;
 }
 
-async function sincronizarRastreador() {
-    // Calculamos las tres cadenas de búsqueda
-    const fechaAyer = generarTextoFecha(-1);
-    const fechaHoy = generarTextoFecha(0);
-    const fechaMañana = generarTextoFecha(1);
+async function sincronizarTodo() {
+    const textoAyer = generarFechaOffset(-1);
+    const textoHoy = generarFechaOffset(0);
+    const textoMañana = generarFechaOffset(1);
 
     try {
-        // Consultamos los tres registros simultáneamente para mayor eficiencia
+        // Consultamos los 3 días en una sola petición
         const { data, error } = await _supabase
             .from('itinerario')
-            .select('fecha, ciudad, pais')
-            .in('fecha', [fechaAyer, fechaHoy, fechaMañana]);
+            .select('fecha, ciudad, pais, notas')
+            .in('fecha', [textoAyer, textoHoy, textoMañana]);
 
         if (error) throw error;
 
-        // Referencias del DOM
-        const ubiHoy = document.getElementById('ubicacion');
-        const ubiAyer = document.getElementById('ayer-destino');
-        const ubiMañana = document.getElementById('mañana-destino');
+        // Buscamos cada registro en el array devuelto
+        const hoy = data.find(r => r.fecha === textoHoy);
+        const ayer = data.find(r => r.fecha === textoAyer);
+        const mañana = data.find(r => r.fecha === textoMañana);
 
-        // Mapeamos los resultados recibidos
-        const registroAyer = data.find(r => r.fecha === fechaAyer);
-        const registroHoy = data.find(r => r.fecha === fechaHoy);
-        const registroMañana = data.find(r => r.fecha === fechaMañana);
+        // Actualizamos UI de Ayer y Mañana
+        document.getElementById('ayer-destino').innerText = ayer ? ayer.ciudad : "---";
+        document.getElementById('mañana-destino').innerText = mañana ? mañana.ciudad : "---";
 
-        // Renderizado de Hoy
-        if (registroHoy) {
-            document.getElementById('header-title').innerText = "¿Dónde estoy hoy?";
-            ubiHoy.innerText = `${registroHoy.ciudad}, ${registroHoy.pais}`;
-            // (Aquí podrías añadir la lógica de zona horaria basada en registroHoy.pais)
+        if (hoy) {
+            document.getElementById('ubicacion').innerText = `${hoy.ciudad}, ${hoy.pais}`;
+            document.getElementById('notas').innerText = hoy.notas || "";
+            // Determinar zona horaria según país (Ejemplo simplificado)
+            const zona = hoy.pais.includes("BRASIL") ? "America/Sao_Paulo" : "Europe/Madrid";
+            iniciarReloj(zona);
         } else {
-            ubiHoy.innerText = "Sin datos para hoy";
+            document.getElementById('ubicacion').innerText = "Sin datos para hoy";
+            iniciarReloj("America/Argentina/Buenos_Aires");
         }
-
-        // Renderizado de Ayer y Mañana
-        if (ubiAyer) {
-            ubiAyer.innerText = registroAyer ? `${registroAyer.ciudad}` : "---";
-        }
-        if (ubiMañana) {
-            ubiMañana.innerText = registroMañana ? `${registroMañana.ciudad}` : "---";
-        }
-
-    } catch (err) {
-        console.error("Error de programación:", err);
+    } catch (e) {
+        console.error("Fallo de programación:", e);
+        iniciarReloj("America/Argentina/Buenos_Aires"); // Aseguramos que el reloj inicie igual
     }
 }
 
-sincronizarRastreador();
+function iniciarReloj(zona) {
+    const clockEl = document.getElementById('clock');
+    if (!clockEl) return; // Validación de seguridad
+
+    if (window.intervaloReloj) clearInterval(window.intervaloReloj);
+
+    window.intervaloReloj = setInterval(() => {
+        const ahora = new Date();
+        try {
+            const horaStr = ahora.toLocaleTimeString('es-ES', { 
+                timeZone: zona, 
+                hour: '2-digit', 
+                minute: '2-digit', 
+                second: '2-digit', 
+                hour12: false 
+            });
+            
+            // Lógica de ambiente
+            const h = parseInt(horaStr.split(':')[0]);
+            document.body.className = (h >= 7 && h < 19) ? 'modo-dia' : 'modo-noche';
+            
+            clockEl.innerText = horaStr;
+        } catch (err) {
+            clockEl.innerText = "Error TZ";
+        }
+    }, 1000);
+}
+
+sincronizarTodo();
