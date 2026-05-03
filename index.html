@@ -7,27 +7,33 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="contenedor-principal">
-        <h1 id="header-title">Mi Viaje</h1>
+    <div class="main-wrapper">
+    <div class="glass-card">
+        <h1 id="header-title">Mi Eurotrip 2026</h1>
         
-        <!-- Recuadro lateral: Ayer -->
-        <div id="container-ayer" class="cuadro-transparente">
-            <small>Ayer</small>
-            <div id="ayer-destino">---</div>
+        <div class="navigation-row">
+            <!-- Recuadro Ayer -->
+            <div class="side-box">
+                <span>Ayer</span>
+                <div id="ayer-destino" class="small-text">---</div>
+            </div>
+
+            <!-- Centro Hoy -->
+            <div class="main-display">
+                <div id="ubicacion" class="current-city">Cargando...</div>
+                <div id="clock" class="digital-clock">00:00:00</div>
+            </div>
+
+            <!-- Recuadro Mañana -->
+            <div class="side-box">
+                <span>Mañana</span>
+                <div id="mañana-destino" class="small-text">---</div>
+            </div>
         </div>
-    
-        <!-- Centro: Hoy -->
-        <div id="ubicacion" class="destino-principal">Cargando...</div>
-        <div id="clock" class="hora-grande">00:00:00</div>
-    
-        <!-- Recuadro lateral: Mañana -->
-        <div id="container-mañana" class="cuadro-transparente">
-            <small>Mañana</small>
-            <div id="mañana-destino">---</div>
-        </div>
-    
-        <p id="notas" class="info-notas"></p>
+
+        <p id="notas" class="travel-notes"></p>
     </div>
+</div>
 
     <!-- SDK de Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
