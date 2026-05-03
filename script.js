@@ -7,102 +7,80 @@ const URL_SB = 'https://lmblbrzocgyfqbiyrjte.supabase.co'; // Reemplaza esto con
 const KEY_SB = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxtYmxicnpvY2d5ZnFiaXlyanRlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU1MTEzMDgsImV4cCI6MjA5MTA4NzMwOH0.W-3PLKgei4n2MspD1Dv-3eXB0TUcMZtpBt1isSU2ZDs'; // Reemplaza esto con tu Key real
 const _supabase = supabase.createClient(URL_SB, KEY_SB);
 
-/**
- * Mapeo de Zonas Horarias por País
- * Documentación: Usamos identificadores IANA para asegurar precisión.
- */
-const zonasPorPais = {
-    "BRASIL": "America/Sao_Paulo",
-    "FLORIANOPOLIS": "America/Sao_Paulo",
-    "URUBICI": "America/Sao_Paulo",
-    "MADRID": "Europe/Madrid",
-    "ALICANTE": "Europe/Madrid",
-    "TOLEDO y SEGOVIA": "Europe/Madrid",
-    "FRANCIA": "Europe/Paris",
-    "CHAMONIX": "Europe/Paris",
-    "ITALIA": "Europe/Rome",
-    "MILAN - NAPOLES": "Europe/Rome",
-    "NAPOLES": "Europe/Rome",
-    "NAPOLES - ROMA": "Europe/Rome",
-    "ROMA": "Europe/Rome",
-    "PAISES BAJOS": "Europe/Amsterdam",
-    "ARGENTINA": "America/Argentina/Buenos_Aires"
-};
-
-function generarFechaOffset(dias = 0) {
+function generarFecha(offset = 0) {
     const f = new Date();
-    f.setDate(f.getDate() + dias);
+    f.setDate(f.getDate() + offset);
     const d = String(f.getDate()).padStart(2, '0');
     const m = String(f.getMonth() + 1).padStart(2, '0');
-    const nombres = ["Dom", "Lun", "Mar", "Mie", "Jue", "Vie", "Sab"];
-    return `${d}/${m} (${nombres[f.getDay()]})`;
+    const diasSemana = ["Dom", "Lun", "Mar", "Mie", "Jue", "Vie", "Sab"];
+    return `${d}/${m} (${diasSemana[f.getDay()]})`;
 }
 
-async function sincronizarTodo() {
-    const textoAyer = generarFechaOffset(-1);
-    const textoHoy = generarFechaOffset(0);
-    const textoMañana = generarFechaOffset(1);
+async function sincronizarApp() {
+    const fAyer = generarFecha(-1);
+    const fHoy = generarFecha(0);
+    const fMañana = generarFecha(1);
 
     try {
-        // Consultamos los 3 días en una sola petición
         const { data, error } = await _supabase
             .from('itinerario')
             .select('fecha, ciudad, pais, notas')
-            .in('fecha', [textoAyer, textoHoy, textoMañana]);
+            .in('fecha', [fAyer, fHoy, fMañana]);
 
         if (error) throw error;
 
-        // Buscamos cada registro en el array devuelto
-        const hoy = data.find(r => r.fecha === textoHoy);
-        const ayer = data.find(r => r.fecha === textoAyer);
-        const mañana = data.find(r => r.fecha === textoMañana);
+        const hoy = data.find(r => r.fecha === fHoy);
+        const ayer = data.find(r => r.fecha === fAyer);
+        const mañana = data.find(r => r.fecha === fMañana);
 
-        // Actualizamos UI de Ayer y Mañana
+        // Actualizar Ayer/Mañana
         document.getElementById('ayer-destino').innerText = ayer ? ayer.ciudad : "---";
         document.getElementById('mañana-destino').innerText = mañana ? mañana.ciudad : "---";
 
         if (hoy) {
             document.getElementById('ubicacion').innerText = `${hoy.ciudad}, ${hoy.pais}`;
             document.getElementById('notas').innerText = hoy.notas || "";
-            // Determinar zona horaria según país (Ejemplo simplificado)
-            const zona = hoy.pais.includes("BRASIL") ? "America/Sao_Paulo" : "Europe/Madrid";
-            iniciarReloj(zona);
+            // Zona horaria dinámica
+            const tz = hoy.pais.includes("BRASIL") ? "America/Sao_Paulo" : "Europe/Madrid";
+            iniciarReloj(tz);
         } else {
             document.getElementById('ubicacion').innerText = "Sin datos para hoy";
             iniciarReloj("America/Argentina/Buenos_Aires");
         }
     } catch (e) {
-        console.error("Fallo de programación:", e);
-        iniciarReloj("America/Argentina/Buenos_Aires"); // Aseguramos que el reloj inicie igual
+        console.error("Error de conexión:", e);
+        iniciarReloj("America/Argentina/Buenos_Aires");
     }
 }
 
+/**
+ * Función: iniciarReloj
+ * Maneja el tiempo real y el cambio de ambiente visual.
+ */
 function iniciarReloj(zona) {
     const clockEl = document.getElementById('clock');
-    if (!clockEl) return; // Validación de seguridad
+    if (!clockEl) return;
 
-    if (window.intervaloReloj) clearInterval(window.intervaloReloj);
+    if (window.cronometro) clearInterval(window.cronometro);
 
-    window.intervaloReloj = setInterval(() => {
-        const ahora = new Date();
+    window.cronometro = setInterval(() => {
+        const d = new Date();
         try {
-            const horaStr = ahora.toLocaleTimeString('es-ES', { 
-                timeZone: zona, 
-                hour: '2-digit', 
-                minute: '2-digit', 
-                second: '2-digit', 
-                hour12: false 
+            const horaStr = d.toLocaleTimeString('es-ES', { 
+                timeZone: zona, hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false 
             });
             
-            // Lógica de ambiente
+            // Actualización de UI
+            clockEl.innerText = horaStr;
+            
+            // Cambio de fondo (Día: 7hs a 19hs)
             const h = parseInt(horaStr.split(':')[0]);
             document.body.className = (h >= 7 && h < 19) ? 'modo-dia' : 'modo-noche';
-            
-            clockEl.innerText = horaStr;
         } catch (err) {
             clockEl.innerText = "Error TZ";
         }
     }, 1000);
 }
 
-sincronizarTodo();
+// Ejecutar al cargar
+sincronizarApp();
