@@ -13,9 +13,18 @@ const _supabase = supabase.createClient(URL_SB, KEY_SB);
  */
 const zonasPorPais = {
     "BRASIL": "America/Sao_Paulo",
-    "ESPAÑA": "Europe/Madrid",
+    "FLORIANOPOLIS": "America/Sao_Paulo",
+    "URUBICI": "America/Sao_Paulo",
+    "MADRID": "Europe/Madrid",
+    "ALICANTE": "Europe/Madrid",
+    "TOLEDO y SEGOVIA": "Europe/Madrid",
     "FRANCIA": "Europe/Paris",
+    "CHAMONIX": "Europe/Paris",
     "ITALIA": "Europe/Rome",
+    "MILAN - NAPOLES": "Europe/Rome",
+    "NAPOLES": "Europe/Rome",
+    "NAPOLES - ROMA": "Europe/Rome",
+    "ROMA": "Europe/Rome",
     "PAISES BAJOS": "Europe/Amsterdam",
     "ARGENTINA": "America/Argentina/Buenos_Aires"
 };
