@@ -29,71 +29,67 @@ const zonasPorPais = {
     "ARGENTINA": "America/Argentina/Buenos_Aires"
 };
 
-function generarFechaFormatoTexto() {
-    const ahora = new Date();
-    const dia = String(ahora.getDate()).padStart(2, '0');
-    const mes = String(ahora.getMonth() + 1).padStart(2, '0');
+/**
+ * Función: generarTextoFecha
+ * @param {number} offset - Desplazamiento en días (-1 para ayer, 0 hoy, 1 mañana)
+ */
+function generarTextoFecha(offset = 0) {
+    const fecha = new Date();
+    fecha.setDate(fecha.getDate() + offset); // Ajustamos el día
+    
+    const dia = String(fecha.getDate()).padStart(2, '0');
+    const mes = String(fecha.getMonth() + 1).padStart(2, '0');
     const nombresDias = ["Dom", "Lun", "Mar", "Mie", "Jue", "Vie", "Sab"];
-    return `${dia}/${mes} (${nombresDias[ahora.getDay()]})`;
+    const diaSemana = nombresDias[fecha.getDay()];
+    
+    return `${dia}/${mes} (${diaSemana})`;
 }
 
 async function sincronizarRastreador() {
-    const textoFechaHoy = generarFechaFormatoTexto();
+    // Calculamos las tres cadenas de búsqueda
+    const fechaAyer = generarTextoFecha(-1);
+    const fechaHoy = generarTextoFecha(0);
+    const fechaMañana = generarTextoFecha(1);
 
     try {
+        // Consultamos los tres registros simultáneamente para mayor eficiencia
         const { data, error } = await _supabase
             .from('itinerario')
-            .select('ciudad, pais, notas')
-            .eq('fecha', textoFechaHoy)
-            .maybeSingle();
+            .select('fecha, ciudad, pais')
+            .in('fecha', [fechaAyer, fechaHoy, fechaMañana]);
 
         if (error) throw error;
 
-        const ubiEl = document.getElementById('ubicacion');
-        const notaEl = document.getElementById('notas');
-        const tituloEl = document.getElementById('header-title');
+        // Referencias del DOM
+        const ubiHoy = document.getElementById('ubicacion');
+        const ubiAyer = document.getElementById('ayer-destino');
+        const ubiMañana = document.getElementById('mañana-destino');
 
-        if (data) {
-            // LÓGICA DE PROGRAMACIÓN: Determinar zona horaria dinámicamente
-            const paisLimpio = data.pais.toUpperCase().trim();
-            const zonaElegida = zonasPorPais[paisLimpio] || "Europe/Madrid";
+        // Mapeamos los resultados recibidos
+        const registroAyer = data.find(r => r.fecha === fechaAyer);
+        const registroHoy = data.find(r => r.fecha === fechaHoy);
+        const registroMañana = data.find(r => r.fecha === fechaMañana);
 
-            if (tituloEl) tituloEl.innerText = "¿Dónde estoy hoy?";
-            if (ubiEl) ubiEl.innerText = `${data.ciudad}, ${data.pais}`;
-            if (notaEl) notaEl.innerText = data.notas || "Sin notas para hoy.";
-            
-            // Iniciamos el reloj con la zona detectada
-            iniciarReloj(zonaElegida);
+        // Renderizado de Hoy
+        if (registroHoy) {
+            document.getElementById('header-title').innerText = "¿Dónde estoy hoy?";
+            ubiHoy.innerText = `${registroHoy.ciudad}, ${registroHoy.pais}`;
+            // (Aquí podrías añadir la lógica de zona horaria basada en registroHoy.pais)
         } else {
-            if (tituloEl) tituloEl.innerText = "Estado: Pre-Viaje";
-            iniciarReloj('America/Argentina/Buenos_Aires');
+            ubiHoy.innerText = "Sin datos para hoy";
         }
+
+        // Renderizado de Ayer y Mañana
+        if (ubiAyer) {
+            ubiAyer.innerText = registroAyer ? `${registroAyer.ciudad}` : "---";
+        }
+        if (ubiMañana) {
+            ubiMañana.innerText = registroMañana ? `${registroMañana.ciudad}` : "---";
+        }
+
     } catch (err) {
-        console.error("Error:", err);
+        console.error("Error de programación:", err);
     }
-}
-
-function iniciarReloj(zonaHoraria) {
-    const reloj = document.getElementById('clock');
-    const cuerpo = document.body;
-
-    if (window.timerGlobal) clearInterval(window.timerGlobal);
-
-    window.timerGlobal = setInterval(() => {
-        const ahora = new Date();
-        try {
-            // El método toLocaleTimeString aplica el desfase automáticamente
-            const opciones = { timeZone: zonaHoraria, hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
-            const horaStr = ahora.toLocaleTimeString('es-ES', opciones);
-            
-            const h = parseInt(horaStr.split(':')[0]);
-            cuerpo.className = (h >= 7 && h < 19) ? 'modo-dia' : 'modo-noche';
-
-            if (reloj) reloj.innerText = horaStr;
-        } catch (e) {
-            if (reloj) reloj.innerText = "--:--:--";
-        }
-    }, 1000);
 }
 
 sincronizarRastreador();
