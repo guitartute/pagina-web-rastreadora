@@ -11,6 +11,17 @@
         <!-- Es vital que estos IDs coincidan con el script.js -->
         <h1 id="header-title">Cargando...</h1>
         <div id="ubicacion" class="destino">Conectando con Supabase...</div>
+        <!-- Agrega este bloque debajo de tu div "ubicacion" -->
+            <div class="destinos-adyacentes">
+                <div class="cuadro-transparente">
+                    <span>Ayer</span>
+                    <div id="ayer-destino">---</div>
+                </div>
+                <div class="cuadro-transparente">
+                    <span>Mañana</span>
+                    <div id="mañana-destino">---</div>
+                </div>
+            </div>
         <div id="clock" class="hora">00:00:00</div>
         <p id="notas" class="info-extra"></p>
 
