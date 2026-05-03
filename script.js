@@ -1,80 +1,89 @@
-/**
- * DOCUMENTACIÓN:
- * 1. SUPABASE_URL: La URL de tu proyecto en el panel de Supabase.
- * 2. SUPABASE_KEY: La clave 'anon public' de la sección API.
- */
-const SUPABASE_URL = 'https://lmblbrzocgyfqbiyrjte.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxtYmxicnpvY2d5ZnFiaXlyanRlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU1MTEzMDgsImV4cCI6MjA5MTA4NzMwOH0.W-3PLKgei4n2MspD1Dv-3eXB0TUcMZtpBt1isSU2ZDs';
-const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+// Configuración de API
+const URL_SB = 'https://TU_PROYECTO.supabase.co';
+const KEY_SB = 'TU_ANON_KEY';
+const clienteSupabase = supabase.createClient(URL_SB, KEY_SB);
 
-async function obtenerDatosDelDia() {
-    // Genera fecha actual YYYY-MM-DD (Hoy es 2026-05-03)
-    const hoy = new Date().toISOString().split('T')[0];
+/**
+ * Función: generarFechaFormatoTexto
+ * Propósito: Crear un string exacto como "03/05 (Dom)"
+ */
+function generarFechaFormatoTexto() {
+    const ahora = new Date();
+    
+    // 1. Obtener día y mes con dos dígitos
+    const dia = String(ahora.getDate()).padStart(2, '0');
+    const mes = String(ahora.getMonth() + 1).padStart(2, '0');
+    
+    // 2. Mapear el nombre del día (JavaScript: 0=Domingo, 1=Lunes...)
+    const nombresDias = ["Dom", "Lun", "Mar", "Mie", "Jue", "Vie", "Sab"];
+    const diaSemana = nombresDias[ahora.getDay()];
+    
+    // 3. Retornar el formato final: "DD/MM (Día)"
+    return `${dia}/${mes} (${diaSemana})`;
+}
+
+async function sincronizarRastreador() {
+    const textoFechaHoy = generarFechaFormatoTexto();
+    console.log("Buscando en la columna 'fecha' el valor:", textoFechaHoy);
 
     try {
-        // Consultamos la tabla 'itinerario'
         const { data, error } = await clienteSupabase
             .from('itinerario')
             .select('ciudad, pais, notas')
-            .eq('fecha', hoy)
-            .maybeSingle(); // Usamos maybeSingle para que no lance error si no hay datos
+            .eq('fecha', textoFechaHoy)
+            .maybeSingle();
 
-        if (error) throw error; // Si hay un error real de red o tabla, va al catch
+        if (error) throw error;
+
+        const ubiElemento = document.getElementById('ubicacion');
+        const notaElemento = document.getElementById('notas');
+        const tituloElemento = document.getElementById('header-title');
 
         if (data) {
-            // CASO 1: Hay viaje hoy
-            document.getElementById('header-title').innerText = "¿Dónde estoy hoy?";
-            document.getElementById('ubicacion').innerText = `${data.ciudad}, ${data.pais}`;
-            document.getElementById('notas').innerText = data.notas || "";
-            activarReloj('Europe/Madrid');
+            // Caso: Hay coincidencia en la base de datos
+            tituloElemento.innerText = "¿Dónde estoy hoy?";
+            ubiElemento.innerText = `${data.ciudad}, ${data.pais}`;
+            notaElemento.innerText = data.notas || "";
+            iniciarReloj('Europe/Madrid');
         } else {
-            // CASO 2: No hay datos para hoy (Ej: Antes del inicio del viaje)
-            document.getElementById('header-title').innerText = "Próximamente";
-            document.getElementById('ubicacion').innerText = "El Eurotrip aún no ha comenzado.";
-            document.getElementById('notas').innerText = "Preparando maletas... El viaje inicia el 04/05.";
-            document.getElementById('clock').innerText = "--:--:--";
-            
-            // Opcional: Podrías usar la hora de Argentina mientras esperas
-            activarReloj('America/Argentina/Buenos_Aires');
+            // Caso: Hoy es 03/05 (Dom) y no hay fila creada
+            tituloElemento.innerText = "Estado: Pre-Viaje";
+            ubiElemento.innerText = "El itinerario comienza mañana.";
+            notaElemento.innerText = `Buscando: "${textoFechaHoy}". Mañana 04/05 (Lun) se activará automáticamente.`;
+            iniciarReloj('America/Argentina/Buenos_Aires');
         }
     } catch (err) {
-        // CASO 3: Error real de programación o conexión
-        console.error("Error técnico:", err);
-        document.getElementById('ubicacion').innerText = "Error de conexión con la base de datos.";
+        console.error("Detalle técnico del error:", err);
+        document.getElementById('ubicacion').innerText = "Error de conexión con Supabase.";
     }
 }
 
-function activarReloj(zona) {
-    const elReloj = document.getElementById('clock');
-    const elCuerpo = document.body;
+/**
+ * Función: iniciarReloj
+ * Propósito: Gestionar el reloj digital y el cambio de color del cielo
+ */
+function iniciarReloj(zonaHoraria) {
+    const reloj = document.getElementById('clock');
+    const cuerpo = document.body;
 
-    // Limpiar intervalos anteriores si existieran
-    if (window.relojInterval) clearInterval(window.relojInterval);
+    if (window.timerViaje) clearInterval(window.timerViaje);
 
-    window.relojInterval = setInterval(() => {
-        const tiempo = new Date();
-        
+    window.timerViaje = setInterval(() => {
+        const ahora = new Date();
         try {
-            const horaTexto = tiempo.toLocaleTimeString('es-ES', { timeZone: zona, hour: '2-digit', hour12: false });
-            const horaNum = parseInt(horaTexto);
+            const opciones = { timeZone: zonaHoraria, hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
+            const horaLocalStr = ahora.toLocaleTimeString('es-ES', opciones);
+            
+            // Lógica de ambiente (Día: 07:00 a 19:00)
+            const horaActual = parseInt(horaLocalStr.split(':')[0]);
+            cuerpo.className = (horaActual >= 7 && horaActual < 19) ? 'modo-dia' : 'modo-noche';
 
-            // Cambio de ambiente día/noche
-            if (horaNum >= 7 && horaNum < 19) {
-                elCuerpo.className = 'modo-dia';
-            } else {
-                elCuerpo.className = 'modo-noche';
-            }
-
-            elReloj.innerText = tiempo.toLocaleTimeString('es-ES', { 
-                timeZone: zona, 
-                hour: '2-digit', 
-                minute: '2-digit', 
-                second: '2-digit' 
-            });
+            reloj.innerText = horaLocalStr;
         } catch (e) {
-            elReloj.innerText = "Error de Zona";
+            reloj.innerText = "Error TZ";
         }
     }, 1000);
 }
 
-obtenerDatosDelDia();
+// Ejecución inicial
+sincronizarRastreador();
