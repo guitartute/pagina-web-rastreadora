@@ -7,32 +7,42 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="tracker-container">
-    <div class="glass-morphism">
+    <div class="app-wrapper">
+    <!-- Efectos de luz de fondo -->
+    <div class="blob"></div>
+    
+    <div class="glass-container">
+        <div class="status-badge">Live Tracker</div>
+        
         <header>
-            <h1 id="header-title">MI EUROTRIP</h1>
+            <div id="ubicacion" class="city-display">---</div>
+            <div id="clock" class="main-clock">00:00:00</div>
         </header>
 
-        <main class="main-content">
-            <div id="ubicacion" class="city-name">Cargando...</div>
-            <div id="clock" class="digital-time">00:00:00</div>
-        </main>
-
-        <footer class="history-grid">
-            <div class="history-item">
-                <span class="label">Ayer</span>
-                <div id="ayer-destino" class="val">---</div>
+        <div class="progress-area">
+            <div class="progress-bar">
+                <div id="progress-fill" class="fill"></div>
             </div>
-            <div class="history-item">
-                <span class="label">Mañana</span>
-                <div id="mañana-destino" class="val">---</div>
+            <div class="progress-labels">
+                <span>00:00</span>
+                <span>24:00</span>
             </div>
-        </footer>
+        </div>
 
-        <div id="notas" class="travel-notes"></div>
+        <div class="itinerary-footer">
+            <div class="step-card">
+                <span class="step-label">Ayer</span>
+                <div id="ayer-destino" class="step-val">---</div>
+            </div>
+            <div class="step-card">
+                <span class="step-label">Mañana</span>
+                <div id="mañana-destino" class="step-val">---</div>
+            </div>
+        </div>
+
+        <div id="notas" class="notes-panel"></div>
     </div>
 </div>
-
     <!-- SDK de Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="script.js"></script>
