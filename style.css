@@ -1,71 +1,85 @@
 :root {
-    --accent: #00ffcc;
-    --bg-dark: #050505;
-    --glass: rgba(255, 255, 255, 0.05);
+    --primary-glow: #00ffcc;
+    --glass-bg: rgba(15, 15, 15, 0.6);
+    --glass-border: rgba(255, 255, 255, 0.1);
 }
 
 body {
-    background-color: var(--bg-dark);
     margin: 0;
-    font-family: 'Inter', system-ui, sans-serif;
+    padding: 0;
+    height: 100vh;
     display: flex;
     justify-content: center;
     align-items: center;
-    min-height: 100vh;
+    font-family: 'Segoe UI', Roboto, sans-serif;
     color: white;
-}
-
-.glass-container {
-    background: var(--glass);
-    backdrop-filter: blur(25px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 40px;
-    padding: 40px 30px;
-    width: 90%;
-    max-width: 420px;
-    position: relative;
-    z-index: 10;
-}
-
-/* Animación de pulso para el reloj */
-.main-clock {
-    font-size: 5rem;
-    font-weight: 900;
-    color: var(--accent);
-    margin: 10px 0;
-    letter-spacing: -2px;
-    animation: glow 3s infinite alternate;
-}
-
-@keyframes glow {
-    from { text-shadow: 0 0 10px rgba(0, 255, 204, 0.3); }
-    to { text-shadow: 0 0 30px rgba(0, 255, 204, 0.6); }
-}
-
-.progress-bar {
-    height: 6px;
-    background: rgba(255,255,255,0.1);
-    border-radius: 10px;
     overflow: hidden;
+    transition: background 1.5s ease;
+}
+
+/* Fondos dinámicos */
+body.modo-dia { background: radial-gradient(circle, #2c3e50, #000000); }
+body.modo-noche { background: radial-gradient(circle, #1a1a2e, #020205); }
+
+.glass-morphism {
+    background: var(--glass-bg);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+    border-radius: 40px;
+    padding: 30px;
+    width: 85%;
+    max-width: 400px; /* Tamaño ideal para celular */
+    text-align: center;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+}
+
+.city-name {
+    font-size: 1.8rem;
+    font-weight: 300;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+}
+
+.digital-time {
+    font-size: 4rem;
+    font-weight: 800;
+    color: var(--primary-glow);
+    text-shadow: 0 0 30px rgba(0, 255, 204, 0.4);
     margin: 20px 0;
 }
 
-.fill {
-    height: 100%;
-    background: var(--accent);
-    width: 0%;
-    transition: width 1s ease-in-out;
-}
-
-.itinerary-footer {
+.history-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 15px;
     margin-top: 30px;
+    border-top: 1px solid var(--glass-border);
+    padding-top: 20px;
 }
 
-.step-card {
-    background: rgba(0,0,0,0.2);
-    padding: 15px;
-    border-radius: 20px;
+.label {
+    display: block;
+    font-size: 0.7rem;
+    opacity: 0.5;
+    text-transform: uppercase;
+    margin-bottom: 5px;
+}
+
+.val { font-size: 0.9rem; font-weight: 500; }
+
+.travel-notes {
+    font-size: 0.8rem;
+    margin-top: 20px;
+    font-style: italic;
+    opacity: 0.7;
+}
+
+/* Optimización para pantallas grandes (Desktop) */
+@media (min-width: 768px) {
+    .glass-morphism {
+        max-width: 600px;
+        padding: 50px;
+    }
+    .digital-time { font-size: 5.5rem; }
 }
