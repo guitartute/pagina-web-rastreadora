@@ -3,25 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>¿DONDE ESTOY EN ESTE DIA?</title>
+    <title>Live Tracker - Eurotrip</title>
     <link rel="stylesheet" href="style.css">
 </head>
-<body class="dia"> <!-- Clase inicial por defecto -->
+<body>
     <div class="contenedor-principal">
-        <h1 id="titulo">Mi Ubicación Actual</h1>
-        
-        <!-- Información de la Base de Datos -->
-        <div id="ubicacion" class="destino">Consultando itinerario...</div>
+        <!-- Es vital que estos IDs coincidan con el script.js -->
+        <h1 id="header-title">Cargando...</h1>
+        <div id="ubicacion" class="destino">Conectando con Supabase...</div>
         <div id="clock" class="hora">00:00:00</div>
         <p id="notas" class="info-extra"></p>
 
-        <!-- Elemento visual del avión -->
         <div class="pista-vuelo">
             <span class="avion">✈️</span>
         </div>
     </div>
 
-    <!-- SDK de Supabase para la conexión -->
+    <!-- SDK de Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="script.js"></script>
 </body>
