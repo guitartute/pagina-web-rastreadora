@@ -7,82 +7,74 @@ const URL_SB = 'https://lmblbrzocgyfqbiyrjte.supabase.co'; // Reemplaza esto con
 const KEY_SB = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxtYmxicnpvY2d5ZnFiaXlyanRlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU1MTEzMDgsImV4cCI6MjA5MTA4NzMwOH0.W-3PLKgei4n2MspD1Dv-3eXB0TUcMZtpBt1isSU2ZDs'; // Reemplaza esto con tu Key real
 const clienteSupabase = supabase.createClient(URL_SB, KEY_SB);
 
-/**
- * Función: generarFechaFormatoTexto
- * Transforma la fecha actual al formato exacto de tu DB: "03/05 (Dom)"
- */
-function generarFechaFormatoTexto() {
+function obtenerFechaTexto() {
     const ahora = new Date();
     const dia = String(ahora.getDate()).padStart(2, '0');
     const mes = String(ahora.getMonth() + 1).padStart(2, '0');
-    const nombresDias = ["Dom", "Lun", "Mar", "Mie", "Jue", "Vie", "Sab"];
-    const diaSemana = nombresDias[ahora.getDay()];
-    
-    return `${dia}/${mes} (${diaSemana})`;
+    const diasEsp = ["Dom", "Lun", "Mar", "Mie", "Jue", "Vie", "Sab"];
+    const nombreDia = diasEsp[ahora.getDay()];
+    return `${dia}/${mes} (${nombreDia})`;
 }
 
 async function sincronizarRastreador() {
-    const textoFechaHoy = generarFechaFormatoTexto();
-    console.log("Buscando en la columna 'fecha' el valor:", textoFechaHoy);
+    const fechaBusqueda = obtenerFechaTexto();
+    console.log("Buscando en la columna 'fecha' el valor:", fechaBusqueda);
 
     try {
-        const { data, error } = await clienteSupabase
+        const { data, error } = await _supabase
             .from('itinerario')
             .select('ciudad, pais, notas')
-            .eq('fecha', textoFechaHoy)
+            .eq('fecha', fechaBusqueda)
             .maybeSingle();
 
         if (error) throw error;
 
-        const ubiElemento = document.getElementById('ubicacion');
-        const notaElemento = document.getElementById('notas');
-        const tituloElemento = document.getElementById('header-title');
+        // Captura de elementos del DOM
+        const ubiEl = document.getElementById('ubicacion');
+        const notaEl = document.getElementById('notas');
+        const tituloEl = document.getElementById('header-title');
+        const relojEl = document.getElementById('clock');
 
+        // Verificación de existencia de elementos antes de asignar texto
         if (data) {
-            tituloElemento.innerText = "¿Dónde estoy hoy?";
-            ubiElemento.innerText = `${data.ciudad}, ${data.pais}`;
-            notaElemento.innerText = data.notas || "";
+            if (tituloEl) tituloEl.innerText = "¿Dónde estoy hoy?";
+            if (ubiEl) ubiEl.innerText = `${data.ciudad}, ${data.pais}`;
+            if (notaEl) notaEl.innerText = data.notas || "";
             iniciarReloj('Europe/Madrid');
         } else {
-            // Caso hoy: 03/05 (Dom) no existe en tu tabla
-            tituloElemento.innerText = "Estado: Pre-Viaje";
-            ubiElemento.innerText = "El itinerario comienza mañana.";
-            notaElemento.innerText = `Buscando "${textoFechaHoy}". Mañana 04/05 (Lun) se activará automáticamente.`;
+            // Caso hoy 03/05: No hay datos aún
+            if (tituloEl) tituloEl.innerText = "Estado: Pre-Viaje";
+            if (ubiEl) ubiEl.innerText = "El itinerario comienza mañana.";
+            if (notaEl) notaEl.innerText = `Buscando "${fechaBusqueda}". Mañana 04/05 (Lun) se activará automáticamente.`;
             iniciarReloj('America/Argentina/Buenos_Aires');
         }
     } catch (err) {
         console.error("Detalle técnico del error:", err);
-        // Si la URL es incorrecta, el código caerá aquí
-        document.getElementById('ubicacion').innerText = "Error: URL de base de datos no válida.";
+        const ubiEl = document.getElementById('ubicacion');
+        if (ubiEl) ubiEl.innerText = "Error al obtener datos del itinerario.";
     }
 }
 
-/**
- * Función: iniciarReloj
- * Controla la hora local y los colores del CSS
- */
-function iniciarReloj(zonaHoraria) {
-    const reloj = document.getElementById('clock');
-    const cuerpo = document.body;
+function iniciarReloj(zona) {
+    const clockEl = document.getElementById('clock');
+    const bodyEl = document.body;
 
-    if (window.timerViaje) clearInterval(window.timerViaje);
+    if (window.miTimer) clearInterval(window.miTimer);
 
-    window.timerViaje = setInterval(() => {
-        const ahora = new Date();
+    window.miTimer = setInterval(() => {
+        const d = new Date();
+        const opciones = { timeZone: zona, hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
         try {
-            const opciones = { timeZone: zonaHoraria, hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
-            const horaLocalStr = ahora.toLocaleTimeString('es-ES', opciones);
+            const horaLocal = d.toLocaleTimeString('es-ES', opciones);
+            const h = parseInt(horaLocal.split(':')[0]);
             
-            // Lógica de ambiente (Día: 07:00 a 19:00)
-            const horaActual = parseInt(horaLocalStr.split(':')[0]);
-            cuerpo.className = (horaActual >= 7 && horaActual < 19) ? 'modo-dia' : 'modo-noche';
-
-            reloj.innerText = horaLocalStr;
+            // Cambio de clase CSS para el fondo
+            bodyEl.className = (h >= 7 && h < 19) ? 'modo-dia' : 'modo-noche';
+            if (clockEl) clockEl.innerText = horaLocal;
         } catch (e) {
-            reloj.innerText = "Error TZ";
+            if (clockEl) clockEl.innerText = "--:--:--";
         }
     }, 1000);
 }
 
-// Iniciar proceso
 sincronizarRastreador();
