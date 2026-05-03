@@ -1,85 +1,88 @@
-// 1. Configuración de conexión (Verifica que no haya espacios en las credenciales)
-const URL_SB = 'https://lmblbrzocgyfqbiyrjte.supabase.co'; 
-const KEY_SB = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxtYmxicnpvY2d5ZnFiaXlyanRlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU1MTEzMDgsImV4cCI6MjA5MTA4NzMwOH0.W-3PLKgei4n2MspD1Dv-3eXB0TUcMZtpBt1isSU2ZDs'; // Asegúrate de colocar tu anon key real
-const _supabase = supabase.createClient(URL_SB, KEY_SB);
+/**
+ * DOCUMENTACIÓN DE CONFIGURACIÓN
+ * URL_SB: Debe ser tu "Project URL".
+ * KEY_SB: Debe ser tu "Anon Public Key".
+ */
+const URL_SB = 'https://lmblbrzocgyfqbiyrjte.supabase.co'; // Reemplaza esto con tu URL real
+const KEY_SB = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxtYmxicnpvY2d5ZnFiaXlyanRlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU1MTEzMDgsImV4cCI6MjA5MTA4NzMwOH0.W-3PLKgei4n2MspD1Dv-3eXB0TUcMZtpBt1isSU2ZDs'; // Reemplaza esto con tu Key real
+const clienteSupabase = supabase.createClient(URL_SB, KEY_SB);
 
 /**
- * Paso 2: Función para generar el texto exacto que pide tu base de datos.
- * Resultado esperado hoy: "03/05 (Dom)"
+ * Función: generarFechaFormatoTexto
+ * Transforma la fecha actual al formato exacto de tu DB: "03/05 (Dom)"
  */
-function obtenerFechaTexto() {
+function generarFechaFormatoTexto() {
     const ahora = new Date();
-    
-    // Obtener día y mes con dos dígitos
     const dia = String(ahora.getDate()).padStart(2, '0');
     const mes = String(ahora.getMonth() + 1).padStart(2, '0');
+    const nombresDias = ["Dom", "Lun", "Mar", "Mie", "Jue", "Vie", "Sab"];
+    const diaSemana = nombresDias[ahora.getDay()];
     
-    // Mapeo manual para asegurar que coincida con tu columna TEXT
-    const diasEspañol = ["Dom", "Lun", "Mar", "Mie", "Jue", "Vie", "Sab"];
-    const nombreDia = diasEspañol[ahora.getDay()];
-    
-    return `${dia}/${mes} (${nombreDia})`;
+    return `${dia}/${mes} (${diaSemana})`;
 }
 
-async function cargarItinerario() {
-    const fechaParaConsultar = obtenerFechaTexto();
-    
-    // Log de depuración: Verás en consola qué texto exacto estamos enviando
-    console.log("Enviando consulta para fecha:", fechaParaConsultar);
+async function sincronizarRastreador() {
+    const textoFechaHoy = generarFechaFormatoTexto();
+    console.log("Buscando en la columna 'fecha' el valor:", textoFechaHoy);
 
     try {
-        const { data, error } = await _supabase
+        const { data, error } = await clienteSupabase
             .from('itinerario')
             .select('ciudad, pais, notas')
-            .eq('fecha', fechaParaConsultar)
+            .eq('fecha', textoFechaHoy)
             .maybeSingle();
 
         if (error) throw error;
 
         const ubiElemento = document.getElementById('ubicacion');
         const notaElemento = document.getElementById('notas');
+        const tituloElemento = document.getElementById('header-title');
 
         if (data) {
-            // Si encuentra el texto "03/05 (Dom)" en la columna fecha
-            document.getElementById('header-title').innerText = "¿Dónde estoy hoy?";
+            tituloElemento.innerText = "¿Dónde estoy hoy?";
             ubiElemento.innerText = `${data.ciudad}, ${data.pais}`;
             notaElemento.innerText = data.notas || "";
             iniciarReloj('Europe/Madrid');
         } else {
-            // Si NO encuentra el texto (caso actual hasta mañana 04/05)
-            document.getElementById('header-title').innerText = "Próximamente";
-            ubiElemento.innerText = "El Eurotrip inicia mañana.";
-            notaElemento.innerText = `No hay registros para "${fechaParaConsultar}". El viaje arranca el 04/05 (Lun).`;
+            // Caso hoy: 03/05 (Dom) no existe en tu tabla
+            tituloElemento.innerText = "Estado: Pre-Viaje";
+            ubiElemento.innerText = "El itinerario comienza mañana.";
+            notaElemento.innerText = `Buscando "${textoFechaHoy}". Mañana 04/05 (Lun) se activará automáticamente.`;
             iniciarReloj('America/Argentina/Buenos_Aires');
         }
-
     } catch (err) {
-        console.error("Error detallado:", err);
-        document.getElementById('ubicacion').innerText = "Error de comunicación con el servidor.";
+        console.error("Detalle técnico del error:", err);
+        // Si la URL es incorrecta, el código caerá aquí
+        document.getElementById('ubicacion').innerText = "Error: URL de base de datos no válida.";
     }
 }
 
 /**
- * Paso 3: Gestión del reloj y el ambiente visual
+ * Función: iniciarReloj
+ * Controla la hora local y los colores del CSS
  */
-function iniciarReloj(zona) {
-    const clockEl = document.getElementById('clock');
-    const bodyEl = document.body;
+function iniciarReloj(zonaHoraria) {
+    const reloj = document.getElementById('clock');
+    const cuerpo = document.body;
 
-    if (window.miIntervalo) clearInterval(window.miIntervalo);
+    if (window.timerViaje) clearInterval(window.timerViaje);
 
-    window.miIntervalo = setInterval(() => {
-        const d = new Date();
-        const opciones = { timeZone: zona, hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
-        const horaLocal = d.toLocaleTimeString('es-ES', opciones);
-        
-        // Cambio de color según la hora
-        const h = parseInt(horaLocal.split(':')[0]);
-        bodyEl.className = (h >= 7 && h < 19) ? 'modo-dia' : 'modo-noche';
+    window.timerViaje = setInterval(() => {
+        const ahora = new Date();
+        try {
+            const opciones = { timeZone: zonaHoraria, hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
+            const horaLocalStr = ahora.toLocaleTimeString('es-ES', opciones);
+            
+            // Lógica de ambiente (Día: 07:00 a 19:00)
+            const horaActual = parseInt(horaLocalStr.split(':')[0]);
+            cuerpo.className = (horaActual >= 7 && horaActual < 19) ? 'modo-dia' : 'modo-noche';
 
-        clockEl.innerText = horaLocal;
+            reloj.innerText = horaLocalStr;
+        } catch (e) {
+            reloj.innerText = "Error TZ";
+        }
     }, 1000);
 }
 
-// Arrancar la aplicación
-cargarItinerario();
+// Iniciar proceso
+sincronizarRastreador();
