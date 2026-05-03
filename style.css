@@ -57,13 +57,28 @@ body.noche { background: var(--bg-noche); }
 }
 
 .cuadro-transparente {
-    background: rgba(255, 255, 255, 0.1); /* Transparencia */
-    backdrop-filter: blur(5px); /* Desenfoque de fondo */
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
     border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 10px;
+    border-radius: 12px;
     padding: 10px;
-    flex: 1;
-    font-size: 0.85rem;
+    margin: 10px auto;
+    width: fit-content;
+    min-width: 150px;
+}
+
+.cuadro-transparente small {
+    display: block;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+}
+
+.hora-grande {
+    font-size: 4rem;
+    font-weight: bold;
+    color: #00ffcc;
 }
 
 .cuadro-transparente span {
